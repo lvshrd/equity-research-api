@@ -1,12 +1,12 @@
 # app/data_loader.py
 import json
 from pathlib import Path
-from typing import Dict, Any
-import toml
+from typing import Dict, Any, List
+from config import CONFIG
 
 class DataLoader:
     def __init__(self):
-        self.data_path = Path(toml.load("config.toml")["DATA"]["DATA_PATH"])
+        self.data_path = Path(CONFIG["anthropic"]["data_path"])
         self.company_metadata = self._load_metadata()
         self.financial_data = self._load_financial_data()
         self.valid_company_ids = set(self.company_metadata.keys())

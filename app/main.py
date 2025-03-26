@@ -1,14 +1,12 @@
 # app/main.py
 from fastapi import FastAPI,HTTPException,status
-import toml
 import uuid
 from datetime import datetime
 from app.database import get_db_connection
 from app.models import TaskCreate, TaskStatus
 from app.tasks import generate_report_task
 from app.data_loader import data_loader
-
-config = toml.load("config.toml")
+from config import CONFIG
 
 app = FastAPI(title="Equity Research Report API")
 

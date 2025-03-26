@@ -1,14 +1,12 @@
 # app/celery_config.py
 from celery import Celery
-import toml
-
-Redis_config = toml.load("config.toml")["REDIS"]
+from config import CONFIG
 
 celery = Celery(
     "tasks",
 
-    broker=Redis_config["REDIS_URL"],
-    backend=Redis_config["REDIS_URL"],
+    broker=CONFIG["redis"]["url"],
+    backend=CONFIG["redis"]["url"],
     include=["app.tasks"]
 )
 

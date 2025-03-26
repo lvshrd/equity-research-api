@@ -77,7 +77,7 @@ def generate_report_task(self, task_id: str, company_id: str):
         # Save report
         report_dir = "reports"
         os.makedirs(report_dir, exist_ok=True)
-        report_filename = f"{task_id}_{company_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
+        report_filename = f"{task_id}_{company_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.md"
         report_path = os.path.join(report_dir, report_filename)
         with open(report_path, "w") as f:
             f.write(report_content)

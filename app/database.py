@@ -2,27 +2,15 @@
 import pymysql
 from pymysql import cursors
 from pymysql.err import OperationalError
-import toml
-
-def load_config(filepath="config.toml"):
-    try:
-        with open(filepath, 'r') as f:
-            config = toml.load(f)
-        return config
-    except FileNotFoundError:
-        print(f"Error: Configuration file '{filepath}' not found.")
-        return None
+from config import CONFIG
     
 def get_db_connection():
-    config = load_config()
-    if not config:
-        return None
-    db_config = config["MYSQL"]
+    """Create MySQL connection using TOML config"""
     return pymysql.connect(
-        host=db_config["HOST"],
-        user=db_config["USER"],
-        password=db_config["PASSWORD"],
-        database=db_config["DATABASE"],
+        host=CONFIG["database"]["host"],
+        user=CONFIG["database"]["user"],
+        password=CONFIG["database"]["password"],
+        database=CONFIG["database"]["database"],
         cursorclass=cursors.DictCursor
     )
 
