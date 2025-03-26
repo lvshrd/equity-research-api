@@ -40,7 +40,8 @@ def init_db():
                     status ENUM('pending', 'success', 'failed') DEFAULT 'pending',
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     completed_at DATETIME,
-                    report_path TEXT
+                    report_path TEXT,
+                    error_message TEXT
                 )
             """)
         conn.commit()

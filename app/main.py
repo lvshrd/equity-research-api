@@ -28,6 +28,9 @@ async def create_task(task: TaskCreate):
     Returns:
     - Task metadata with initial status
     """
+    if not task.company_id.isdigit():
+        raise HTTPException(400, "company_id must be a numeric string")
+    
     if not validate_company_id(task.company_id):
         raise HTTPException(
             status_code=400,
@@ -125,88 +128,3 @@ async def get_task(task_id: str):
         raise HTTPException(404, "Task not found")
     
     return result
-
-@app.post("/reports/{company_id}")
-async def create_report(company_id: str):
-    """
-    For Users to submit a generation task for a particular company.
-    """
-    # Validate company_id format
-    if not company_id or len(company_id) > 20:
-        raise HTTPException(status_code=400, detail="Invalid company ID")
-    
-    # Generate unique task ID
-    task_id = str(uuid.uuid4())
-    
-    # Store task in database
-    conn = get_db_connection()
-    if not conn:
-        raise HTTPException(status_code=500, detail="Database connection error")
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                "INSERT INTO tasks (task_id, company_id, status) VALUES (%s, %s, %s)",
-                (task_id, company_id, "pending")
-            )
-        conn.commit()
-    finally:
-        conn.close()
-    
-    # Start async task
-    task = generate_report_task.delay(company_id)
-    return {"task_id": task_id, "status": "pending"}
-
-@app.get("/reports/status/{task_id}")
-async def get_report_status(task_id: str):
-    conn = get_db_connection()
-    if not conn:
-        raise HTTPException(status_code=500, detail="Database connection error")
-    
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM tasks WHERE task_id = %s", (task_id,))
-            task = cursor.fetchone()
-            
-        if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
-            
-        return {
-            "task_id": task["task_id"],
-            "company_id": task["company_id"],
-            "status": task["status"],
-            "created_at": task["created_at"],
-            "completed_at": task["completed_at"]
-        }
-    finally:
-        conn.close()
-
-@app.get("/reports/{task_id}")
-async def get_report(task_id: str):
-    """
-    For User to view their previously generated reports.
-    """
-    conn = get_db_connection()
-    if not conn:
-        raise HTTPException(status_code=500, detail="Database connection error")
-    
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM tasks WHERE task_id = %s", (task_id,))
-            task = cursor.fetchone()
-            
-        if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
-            
-        if task["status"] != "success":
-            raise HTTPException(status_code=400, detail=f"Report not ready. Current status: {task['status']}")
-
-        # In a real implementation, you would return the actual report
-        # This could be a file download or JSON data
-        return {
-            "task_id": task["task_id"],
-            "company_id": task["company_id"],
-            "report_path": task["report_path"],
-            "completed_at": task["completed_at"]
-        }
-    finally:
-        conn.close()
