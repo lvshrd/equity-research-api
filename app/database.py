@@ -10,7 +10,7 @@ def get_db_connection():
         host=CONFIG["database"]["host"],
         user=CONFIG["database"]["user"],
         password=CONFIG["database"]["password"],
-        database=CONFIG["database"]["database"],
+        database=CONFIG["database"]["dbname"],
         cursorclass=cursors.DictCursor
     )
 

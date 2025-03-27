@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 from app.llm_service import AnthropicService
 from app.data_loader import data_loader
+from config import CONFIG
 import asyncio
 
 def update_task_status(
@@ -66,17 +67,13 @@ def generate_report_task(self, task_id: str, company_id: str):
     llm = AnthropicService()
     prompt = llm.build_prompt(company_data)
     try:
-        # For async compatibility in Celery
-        # report_content = httpx.post(llm.base_url).json()  # Sync call for demo
-        # report_content=f"{company_json}"
-        
         # Generate report content
         report_content = asyncio.run(llm.generate_report(prompt))
         if not report_content:
             raise ValueError("Empty response from LLM")
             
         # Save report
-        report_dir = "reports"
+        report_dir = CONFIG["app"]["reports_path"]
         os.makedirs(report_dir, exist_ok=True)
         report_filename = f"{task_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.md"
         report_path = os.path.join(report_dir, report_filename)

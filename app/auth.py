@@ -1,13 +1,12 @@
 # app/auth.py
 from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
-import toml
+from config import CONFIG
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 def get_api_key():
-    config = toml.load("config.toml")
-    return config.get("API", {}).get("API_KEY", "")
+    return CONFIG["app"]["API_KEY"]
 
 async def verify_api_key(api_key: str = Depends(api_key_header)):
     if not api_key:

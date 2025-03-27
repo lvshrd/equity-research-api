@@ -6,7 +6,7 @@ from config import CONFIG
 
 class DataLoader:
     def __init__(self):
-        self.data_path = Path(CONFIG["anthropic"]["data_path"])
+        self.data_path = Path(CONFIG["app"]["data_path"])
         self.company_metadata = self._load_metadata()
         self.financial_data = self._load_financial_data()
         self.valid_company_ids = set(self.company_metadata.keys())

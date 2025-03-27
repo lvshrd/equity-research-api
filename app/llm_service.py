@@ -7,7 +7,7 @@ class AnthropicService:
     def __init__(self):
         self.api_key = CONFIG["anthropic"]["api_key"]
 
-    async def generate_report(self, prompt: str, model: str = "claude-3-haiku-20240307") -> Optional[str]:
+    async def generate_report(self, prompt: str, model: str = CONFIG["anthropic"]["model"]) -> Optional[str]:
         """Generate report using Anthropic API"""
         try:
             client = anthropic.AsyncAnthropic(

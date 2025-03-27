@@ -1,11 +1,12 @@
 # app/main.py
-from fastapi import FastAPI,HTTPException,status
+from fastapi import FastAPI,HTTPException,status, Depends
 import uuid
 from datetime import datetime
 from app.database import get_db_connection
 from app.models import TaskCreate, TaskStatus
 from app.tasks import generate_report_task
 from app.data_loader import data_loader
+from app.auth import verify_api_key
 from config import CONFIG
 
 app = FastAPI(title="Equity Research Report API")
@@ -15,7 +16,7 @@ def validate_company_id(company_id: str) -> bool:
     """Check if company exists in metadata."""
     return data_loader.validate_company(company_id)
 
-@app.post("/tasks", response_model=TaskStatus, status_code=status.HTTP_202_ACCEPTED)
+@app.post("/tasks", response_model=TaskStatus, status_code=status.HTTP_202_ACCEPTED, dependencies=[Depends(verify_api_key)])
 async def create_task(task: TaskCreate):
     """
     Endpoint to submit a new report generation task
@@ -70,7 +71,7 @@ async def create_task(task: TaskCreate):
     }
 
 
-@app.get("/tasks", response_model=list[TaskStatus])
+@app.get("/tasks", response_model=list[TaskStatus], dependencies=[Depends(verify_api_key)])
 async def list_tasks():
     """
     Retrieve all report generation tasks
@@ -95,7 +96,7 @@ async def list_tasks():
     
     return results
 
-@app.get("/tasks/{task_id}", response_model=TaskStatus)
+@app.get("/tasks/{task_id}", response_model=TaskStatus, dependencies=[Depends(verify_api_key)])
 async def get_task(task_id: str):
     """
     Get details for a specific task
