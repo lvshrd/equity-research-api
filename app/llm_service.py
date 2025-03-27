@@ -1,38 +1,29 @@
 # app/llm_service.py
-import os
-import httpx
 from typing import Optional
 from config import CONFIG
+import anthropic
 
 class AnthropicService:
     def __init__(self):
         self.api_key = CONFIG["anthropic"]["api_key"]
-        self.base_url = "https://api.anthropic.com/v1"
-        self.headers = {
-            "x-api-key": self.api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json"
-        }
 
-    async def generate_report(self, prompt: str, model: str = "claude-instant-1") -> Optional[str]:
+    async def generate_report(self, prompt: str, model: str = "claude-3-haiku-20240307") -> Optional[str]:
         """Generate report using Anthropic API"""
         try:
-            async with httpx.AsyncClient(timeout=120) as client:
-                response = await client.post(
-                    f"{self.base_url}/complete",
-                    json={
-                        "prompt": f"\n\nHuman: {prompt}\n\nAssistant:",
-                        "model": model,
-                        "max_tokens_to_sample": 4000,
-                    },
-                    headers=self.headers
-                )
-                response.raise_for_status()
-                return response.json()["completion"]
+            client = anthropic.AsyncAnthropic(
+                api_key=self.api_key
+            )
+            response = await client.messages.create(
+                model=model,
+                max_tokens=4000,
+                messages=[{
+                    "role": "user", "content": prompt}
+                    ]
+            )
+            return response.content[0].text
                 
-        except (httpx.HTTPError, KeyError) as e:
-            print(f"LLM API Error: {str(e)}")
-            return None
+        except Exception as e:
+            raise RuntimeError(f"LLM API request failed: {str(e)}")
 
     def build_prompt(self, company_data: dict) -> str:
         """Construct research report prompt"""
