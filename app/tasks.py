@@ -6,6 +6,7 @@ import os
 from app.llm_service import AnthropicService
 from app.data_loader import data_loader
 import httpx
+import json
 
 def update_task_status(
     task_id: str, 
@@ -58,16 +59,18 @@ def generate_report_task(self, task_id: str, company_id: str):
     # Get company data
     try:
         company_data = data_loader.get_company_data(company_id)
+        company_json = json.dumps(company_data)
     except ValueError as e:
         update_task_status(task_id, "failed", str(e))
         return
 
     # Generate report
     llm = AnthropicService()
-    prompt = llm.build_prompt(company_data)
+    prompt = llm.build_prompt(company_json)
     try:
         # For async compatibility in Celery
-        report_content = httpx.post(llm.base_url).json()  # Sync call for demo
+        # report_content = httpx.post(llm.base_url).json()  # Sync call for demo
+        report_content=f"{company_json}"
         # In production use async version with proper await
         
         report_content=str(report_content)

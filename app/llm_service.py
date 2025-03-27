@@ -38,7 +38,7 @@ class AnthropicService:
         """Construct research report prompt"""
         recent_financials = []
         if company_data.get("financial_data"):
-            # 按年份排序，取最近的3年
+            # Sort according to year, latest 3 years here
             sorted_data = sorted(
                 company_data["financial_data"], 
                 key=lambda x: x.get("fiscal_year", 0), 
