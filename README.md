@@ -5,21 +5,25 @@ An API service for generating equity research reports using LLM technology.
 ## Features
 - Generate comprehensive equity research reports for companies
 - Convert reports to PDF format
-- API authentication
+- API authentication with api_key from users table integrated with JWT token. 
 - Asynchronous task processing
 
 ## API Endpoints
-- `/tasks`: Create a new task to generate a report.
-- `/tasks/{task_id}`: Get the status of a task.
-- `/reports/{task_id}`: Download the generated report.
+| Method | Endpoint             | Description                                                    |
+|--------|----------------------|----------------------------------------------------------------|
+| POST   | `/tasks`             | Create a new task to generate a report.                        |
+| GET    | `/tasks`             | Retrieve all report generation tasks list.                     |
+| GET    | `/tasks/{task_id}`   | Get the status of a specific task.                             |
+| GET    | `/reports/{task_id}/view` | View the generated report in HTML format.                      |
+| GET    | `/reports/{task_id}` | Download the generated report from a certain task.             |
+| POST   | `/token`             | Allows valid users to obtain a JWT token by providing username and password. |
 
 ## Tech Stack
 - FastAPI for building the API
 - Celery for asynchronous task processing
 - Redis for task queue
 - MySQL for storing task and report data
-- Anthropic for generating reports
-- WeasyPrint for converting reports to PDF format
+- Anthropic API for generating reports
 ## Environment Setup
 1. You need to have a MySQL database installed on your local machine.
 2. Run the following command to create a new conda environment and install the required packages
@@ -29,7 +33,7 @@ conda create -n equity python=3.11 && conda activate equity && conda install fas
 ```zsh
 conda activate equity
 ```
-3. Run the following command to create a table in your MySQL database
+3. Run the following command to create users and tasks tables in your MySQL database and insert default user.
 ```python
 python app/database.py
 ```
@@ -42,21 +46,4 @@ cd dir/where/your/equity-research-agent
 ```bash
 ./start_services.sh
 ```
-3. Send a post request using **curl**. Alternatively you can use Postman or Apifox.
-```zsh
-curl -X POST -H "Content-Type: application/json" \
-     -d '{"company_id": "42601"}' \
-     http://localhost:8000/tasks
-```
-4. Check task status
-```zsh
-curl -H "X-API-Key: your_api_key" http://localhost:8000/tasks/{task_id}
-```
-5. Download the generated report
-```zsh
-curl -H "X-API-Key: your_api_key" -o report.pdf http://localhost:8000/reports/{task_id}
-```
-
-
-28th Mar 2025:
-TODO: JWT
+3. Next, you can call these api by using your custom api key defined in [config.toml](config/config_example.toml)

@@ -5,10 +5,9 @@ from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from config.config_load import CONFIG
-import uuid
 
 # JWT settings
-SECRET_KEY = CONFIG["app"].get("JWT_SECRET_KEY", CONFIG["app"]["API_KEY"])  # Fallback to API_KEY if JWT_SECRET_KEY not set
+SECRET_KEY = CONFIG["app"]["JWT_SECRET_KEY"]
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -59,9 +58,9 @@ async def get_current_user_jwt(token: Optional[str] = Depends(oauth2_scheme)) ->
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    # If no token provided, raise exception
+    # If no token provided, return None
     if not token:
-        raise credentials_exception
+        return None
     
     try:
         # Decode and validate the token
@@ -69,28 +68,14 @@ async def get_current_user_jwt(token: Optional[str] = Depends(oauth2_scheme)) ->
         
         # Extract user information
         user_id = payload.get("sub")
-        username = payload.get("username", "default_user")
+        username = payload.get("username", "admin")
         
         if user_id is None:
-            raise credentials_exception
+            raise None
             
         # Return user information
         return {"user_id": user_id, "username": username}
-        
-    except JWTError:
-        raise credentials_exception
-
-# Default user for simplified authentication
-DEFAULT_USER = {
-    "user_id": str(uuid.uuid4()),  # Generate a stable UUID
-    "username": "default_user"
-}
-
-def get_default_user() -> Dict[str, str]:
-    """
-    Get default user information
     
-    Returns:
-        Default user dictionary
-    """
-    return DEFAULT_USER
+    except JWTError:
+        # raise credentials_exception
+        return None

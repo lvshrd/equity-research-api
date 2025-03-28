@@ -4,7 +4,7 @@ from fastapi.security import APIKeyHeader
 from app.database import get_db_connection
 from typing import Optional, Dict, Any, Union
 from config.config_load import CONFIG
-from app.jwt_auth import get_current_user_jwt, get_default_user
+from app.jwt_auth import get_current_user_jwt
 
 # API key header extractor
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -22,12 +22,6 @@ async def get_user_from_api_key(api_key: str) -> Optional[Dict[str, Any]]:
     if not api_key:
         return None
     
-    # Check if API key matches the one in config
-    if api_key == CONFIG["app"]["API_KEY"]:
-        # Return default user for simplified authentication
-        return get_default_user()
-    
-    # If not using default API key, check database
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
@@ -46,37 +40,9 @@ async def get_user_from_api_key(api_key: str) -> Optional[Dict[str, Any]]:
     finally:
         conn.close()
 
-async def verify_api_key(api_key: str = Depends(api_key_header)):
-    """
-    Verify API key and return user information
-    
-    Args:
-        api_key: The API key from the request header
-        
-    Returns:
-        User information if API key is valid
-        
-    Raises:
-        HTTPException: If API key is missing or invalid
-    """
-    if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API Key header is missing"
-        )
-    
-    user = await get_user_from_api_key(api_key)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API Key"
-        )
-    
-    return user
-
 async def get_current_user_from_token_or_api_key(
-    token_user: Dict[str, Any] = Depends(get_current_user_jwt),
-    api_key_user: Dict[str, Any] = Depends(verify_api_key)
+    token_user: Optional[Dict[str, Any]] = Depends(get_current_user_jwt),
+    api_key: Dict[str, Any] = Depends(api_key_header)
 ) -> Dict[str, Any]:
     """
     Get current user from either JWT token or API key
@@ -91,9 +57,18 @@ async def get_current_user_from_token_or_api_key(
     Returns:
         User information from either source
     """
-    # If token authentication succeeded, use that user
-    if token_user:
+    # Try JWT token first
+    if token_user is not None:
         return token_user
     
-    # Otherwise, use API key user
-    return api_key_user
+    # If no valid token, try API key
+    if api_key:
+        user = await get_user_from_api_key(api_key)
+        if user:
+            return user
+    
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid authentication credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )

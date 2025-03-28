@@ -2,16 +2,17 @@
 from fastapi import FastAPI,HTTPException,status, Depends
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from app.jwt_auth import create_access_token, get_current_user
+from app.jwt_auth import create_access_token
 import markdown
 import uuid
 import os
+from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from app.database import get_db_connection
 from app.models import TaskCreate, TaskStatus, Token
 from app.tasks import generate_report_task
 from app.data_loader import data_loader
-from app.auth import verify_api_key, get_current_user_from_token_or_api_key
+from app.auth import get_current_user_from_token_or_api_key
 from config.config_load import CONFIG
 
 app = FastAPI(title="Equity Research Report API")
@@ -103,7 +104,7 @@ async def list_tasks(user: dict = Depends(get_current_user_from_token_or_api_key
     
     return results
 
-@app.get("/tasks/{task_id}", response_model=TaskStatus, dependencies=[Depends(verify_api_key)])
+@app.get("/tasks/{task_id}", response_model=TaskStatus)
 async def get_task(task_id: str, user: dict = Depends(get_current_user_from_token_or_api_key)):
     """
     Get details for a specific task
@@ -210,8 +211,8 @@ async def view_report(task_id: str, user: dict = Depends(get_current_user_from_t
     """
     return styled_html
 
-@app.get("/reports/{task_id}", dependencies=[Depends(verify_api_key)])
-async def download_report(task_id: str, user: dict = Depends(verify_api_key)):
+@app.get("/reports/{task_id}")
+async def download_report(task_id: str, user: dict = Depends(get_current_user_from_token_or_api_key)):
     """
     Download the generated report for a specific task
     
@@ -261,8 +262,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     OAuth2 compatible token login endpoint
     
     This endpoint allows users to obtain a JWT token by providing
-    username and password. For simplicity, we accept any username
-    with the password from config.
+    username and password.
     
     Args:
         form_data: OAuth2 form with username and password
@@ -273,22 +273,46 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     Raises:
         HTTPException: If credentials are invalid
     """
-    # For simplicity, use a fixed password from config
-    # In a real application, you would verify against a database
-    valid_password = CONFIG["app"].get("DEFAULT_PASSWORD", "password")
+    username = form_data.username
+    password = form_data.password
+    conn = get_db_connection()
+    user = None
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT user_id, username, password_hash FROM users
+                WHERE username = %s
+                """,
+                (username,)
+            )
+            user = cursor.fetchone()
+    except Exception as e:
+        conn.close()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {str(e)}")
+    finally:
+        conn.close()
     
-    if form_data.password != valid_password:
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    # Create access token with user information
-    access_token_expires = timedelta(minutes=40)
+
+    if not CryptContext(schemes=["bcrypt"], deprecated="auto").verify(password, user["password_hash"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token_expires = timedelta(minutes=CONFIG["app"].get("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
     access_token = create_access_token(
-        data={"sub": form_data.username, "username": form_data.username},
+        data={
+            "sub": user["user_id"], 
+            "user_name": user["username"]
+            },
         expires_delta=access_token_expires
     )
-    
     return {"access_token": access_token, "token_type": "bearer"}
