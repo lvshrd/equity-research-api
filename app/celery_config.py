@@ -13,5 +13,7 @@ celery = Celery(
 celery.conf.update(
     task_serializer="json",
     result_serializer="json",
-    accept_content=["json"]
+    accept_content=["json"],
+    result_expires=3600 * 2,  # 2 hours cleanup
+    task_acks_late=True
 )

@@ -82,12 +82,6 @@ def generate_report_task(self, task_id: str, company_id: str):
         with open(md_path, "w") as f:
             f.write(report_content)
 
-        from app.utils import markdown_to_pdf
-        # Convert to PDF
-        pdf_filename = f"{task_id}_{timestamp}.pdf"
-        pdf_path = os.path.join(reports_dir, pdf_filename)
-        markdown_to_pdf(md_path, pdf_path)
-
         # Update task status to completed
         update_task_status(task_id, "success", report_path=md_path)
         

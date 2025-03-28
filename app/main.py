@@ -6,6 +6,7 @@ from app.jwt_auth import create_access_token
 import markdown
 import uuid
 import os
+from starlette.background import BackgroundTask
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from app.database import get_db_connection
@@ -227,7 +228,7 @@ async def download_report(task_id: str, user: dict = Depends(get_current_user_fr
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT report_path, status FROM tasks 
+                SELECT company_id, report_path, status FROM tasks 
                 WHERE task_id = %s AND user_id = %s
                 """,
                 (task_id, user["user_id"])
@@ -249,12 +250,25 @@ async def download_report(task_id: str, user: dict = Depends(get_current_user_fr
     if not report_path or not os.path.exists(report_path):
         raise HTTPException(404, "Report file not found")
     
-    return FileResponse(
-        path=report_path,
-        filename=os.path.basename(report_path),
-        # media_type="application/pdf"
-        media_type="text/markdown"
-    )
+    try:
+        pdf_path = report_path.replace('.md', '.pdf')
+        from app.utils import markdown_to_pdf
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+        # Convert to PDF
+        markdown_to_pdf(report_path, pdf_path)
+        return FileResponse(
+            path=pdf_path,
+            media_type="application/pdf",
+            filename=f"report_{result.get('company_id')}.pdf",
+            background=BackgroundTask(lambda: os.remove(pdf_path) if os.path.exists(pdf_path) else None)
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Error converting to PDF: {str(e)}")
+    # finally:
+    #     # Clean up the temporary PDF file
+    #     if os.path.exists(pdf_path):
+    #         os.remove(pdf_path)
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
