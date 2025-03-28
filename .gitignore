@@ -4,3 +4,5 @@ config.toml
 **/__pycache__
 *.pdf
 reports/*
+test/*
+.pytest_cache

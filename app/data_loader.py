@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 from typing import Dict, Any, List
-from config import CONFIG
+from config.config_load import CONFIG
 
 class DataLoader:
     def __init__(self):

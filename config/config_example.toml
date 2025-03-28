@@ -1,0 +1,23 @@
+# config_example.toml
+[database]
+host = "localhost"
+port = 5432
+user = "root"
+password = "your_password"
+dbname = "equity_research" # pls create your schema first
+[redis]
+url = "redis://localhost:6379/0"
+
+[anthropic]
+api_key = "your_anthropic_api_key"
+model = "claude-3-haiku-20240307" # you can change model here
+
+[app]
+API_KEY = "your_custom_key_for_auth"
+data_path = "./data" # you can change these 2 paths
+reports_path = "./reports"
+
+[server]
+reload = true
+host = "0.0.0.0"
+port = 8000

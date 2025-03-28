@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 from app.llm_service import AnthropicService
 from app.data_loader import data_loader
-from config import CONFIG
+from config.config_load import CONFIG
 import asyncio
 
 def update_task_status(
@@ -71,17 +71,26 @@ def generate_report_task(self, task_id: str, company_id: str):
         report_content = asyncio.run(llm.generate_report(prompt))
         if not report_content:
             raise ValueError("Empty response from LLM")
-            
-        # Save report
-        report_dir = CONFIG["app"]["reports_path"]
-        os.makedirs(report_dir, exist_ok=True)
-        report_filename = f"{task_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.md"
-        report_path = os.path.join(report_dir, report_filename)
-        with open(report_path, "w") as f:
+        # Create timestamp for filename
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        reports_dir = CONFIG["app"]["reports_path"]
+        os.makedirs(reports_dir, exist_ok=True)
+
+        # Save markdown report
+        md_filename = f"{task_id}_{timestamp}.md"
+        md_path = os.path.join(reports_dir, md_filename)
+        with open(md_path, "w") as f:
             f.write(report_content)
-            
-        # Update database
-        update_task_status(task_id, "success",report_path=report_path)
+
+        from app.utils import markdown_to_pdf
+        # Convert to PDF
+        pdf_filename = f"{task_id}_{timestamp}.pdf"
+        pdf_path = os.path.join(reports_dir, pdf_filename)
+        markdown_to_pdf(md_path, pdf_path)
+
+        # Update task status to completed
+        update_task_status(task_id, "success", report_path=md_path)
+        
     except Exception as e:
-        update_task_status(task_id, "failed", str(e))
-        self.retry(exc=e, countdown=60)
+        update_task_status(task_id, "failed", error=str(e))
+        raise e

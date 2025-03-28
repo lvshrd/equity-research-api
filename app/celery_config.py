@@ -1,6 +1,6 @@
 # app/celery_config.py
 from celery import Celery
-from config import CONFIG
+from config.config_load import CONFIG
 
 celery = Celery(
     "tasks",

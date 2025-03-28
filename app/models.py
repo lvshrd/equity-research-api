@@ -14,3 +14,17 @@ class TaskStatus(BaseModel):
     created_at: datetime
     completed_at: Optional[datetime]
     report_path: Optional[str]
+
+class Token(BaseModel):
+    """Token response model"""
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    """Token data model"""
+    username: Optional[str] = None
+
+class UserLogin(BaseModel):
+    """User login request model"""
+    username: str
+    password: str

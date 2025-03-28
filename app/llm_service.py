@@ -1,6 +1,6 @@
 # app/llm_service.py
 from typing import Optional
-from config import CONFIG
+from config.config_load import CONFIG
 import anthropic
 
 class AnthropicService:

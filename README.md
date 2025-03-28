@@ -24,7 +24,7 @@ An API service for generating equity research reports using LLM technology.
 1. You need to have a MySQL database installed on your local machine.
 2. Run the following command to create a new conda environment and install the required packages
 ```zsh
-conda create -n equity python=3.11 && conda activate equity && conda install fastapi uvicorn pymysql python-multipart celery redis-py toml anthropic
+conda create -n equity python=3.11 && conda activate equity && conda install fastapi uvicorn pymysql python-multipart celery redis-py toml anthropic markdown weasyprint python-jose  passlib
 ```
 ```zsh
 conda activate equity
@@ -59,40 +59,4 @@ curl -H "X-API-Key: your_api_key" -o report.pdf http://localhost:8000/reports/{t
 
 
 28th Mar 2025:
-TODO:convert Markdown format output to PDF?
-```python
-# ... 现有代码 ...
-# 在文件顶部添加
-from weasyprint import HTML
-import tempfile
-
-# 在保存报告部分
-# Save report
-report_dir = "reports"
-os.makedirs(report_dir, exist_ok=True)
-report_filename = f"{task_id}_{company_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
-report_path = os.path.join(report_dir, report_filename)
-
-# 先保存为HTML
-html_content = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Equity Research Report - {company_data['metadata']['company_name']}</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 40px; }}
-        h1 {{ color: #2c3e50; }}
-        h2 {{ color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 5px; }}
-    </style>
-</head>
-<body>
-    {report_content}
-</body>
-</html>
-"""
-
-# 使用weasyprint转换为PDF
-HTML(string=html_content).write_pdf(report_path)
-# ... 现有代码 ...
-```
+TODO: JWT
