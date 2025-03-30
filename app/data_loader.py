@@ -43,10 +43,31 @@ class DataLoader:
         """Get combined data for report generation"""
         if not self.validate_company(company_id):
             raise ValueError("Invalid company ID")
-            
+        metadata = self.company_metadata[company_id]
+        if "ticker" in metadata and isinstance(metadata["ticker"], str):
+            metadata["ticker"] = metadata["ticker"].split(" ")[0]
+
+        financial_data = self.financial_data.get(company_id, [])
+        recent_years = sorted(list(set(item['fiscal_year'] for item in financial_data)), reverse=True)[:5]
+
+        simplified_financial_data = []
+        for item in financial_data:
+            if item['fiscal_year'] in recent_years:
+                simplified_financial_data.append({
+                    'fiscal_year': item['fiscal_year'],
+                    'total_revenue': item.get('total_revenue'),
+                    'net_income': item.get('net_income'),
+                    'shareholders_equity': item.get('shareholders_equity'),
+                    'total_asset': item.get('total_asset'),
+                    'total_liab': item.get('total_liab'),
+                    'cash_and_cash_equivalents': item.get('cash_and_cash_equivalents'),
+                    'long_term_debt': item.get('long_term_debt'),
+                    'shares_outstanding': item.get('shares_outstanding')
+                })
+
         return {
-            "metadata": self.company_metadata[company_id],
-            "financial_data": self.financial_data.get(company_id, [])
+            "metadata": metadata,
+            "financial_data": simplified_financial_data
         }
 
 # Singleton instance

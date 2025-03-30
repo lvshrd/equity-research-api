@@ -1,5 +1,5 @@
 # app/tasks.py
-from app.celery_config import celery
+from config.celery_config import celery_app
 from app.database import get_db_connection
 from datetime import datetime
 import os
@@ -7,6 +7,9 @@ from app.llm_service import AnthropicService
 from app.data_loader import data_loader
 from config.config_load import CONFIG
 import asyncio
+from app.agents.research_agent import AnthropicAgent
+from langchain_core.messages import HumanMessage
+
 
 def update_task_status(
     task_id: str, 
@@ -46,35 +49,35 @@ def update_task_status(
         conn.rollback()
     finally:
         conn.close()
+        
 
-@celery.task(bind=True, max_retries=3)
+@celery_app.task(bind=True, max_retries=3)
 def generate_report_task(self, task_id: str, company_id: str):
     """
-    Celery task to generate research report
+    Celery task to generate equity research report
     
     Args:
-        task_id: Unique identifier for tracking
-        company_id: Target company ID
+        task_id: Unique task identifier
+        company_id: Company ID to generate report for
     """
-    # Get company data
-    try:
-        company_data = data_loader.get_company_data(company_id)
-    except ValueError as e:
-        update_task_status(task_id, "failed", str(e))
-        return
 
-    # Generate report
-    llm = AnthropicService()
-    prompt = llm.build_prompt(company_data)
+    reports_dir = CONFIG["app"]["reports_path"]
+    os.makedirs(reports_dir, exist_ok=True)
     try:
-        # Generate report content
-        report_content = asyncio.run(llm.generate_report(prompt))
+        response = asyncio.run(_execute_agent(company_id))
+        
+        # Save raw response to file
+        raw_response_path = os.path.join(reports_dir, f"{task_id}_raw.txt")
+        with open(raw_response_path, "w") as f:
+            f.write(str(response))
+            
+        # Extract content from AIMessage
+        report_content = response["messages"][-1].content if response.get("messages") else ""
+        
         if not report_content:
-            raise ValueError("Empty response from LLM")
+            raise ValueError("Empty response from agent")
         # Create timestamp for filename
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        reports_dir = CONFIG["app"]["reports_path"]
-        os.makedirs(reports_dir, exist_ok=True)
 
         # Save markdown report
         md_filename = f"{task_id}_{timestamp}.md"
@@ -84,7 +87,18 @@ def generate_report_task(self, task_id: str, company_id: str):
 
         # Update task status to completed
         update_task_status(task_id, "success", report_path=md_path)
-        
+        # return {
+        #     "status": "success",
+        #     "task_id": task_id,
+        #     "report_path": md_path
+        # }
     except Exception as e:
         update_task_status(task_id, "failed", error=str(e))
         raise e
+
+async def _execute_agent(company_id: str) -> dict:
+    """Wrapper to run async agent workflow in Celery task"""
+    agent = AnthropicAgent.initialize(CONFIG["anthropic"]["model"],CONFIG["anthropic"]["api_key"])
+    executor = agent.build_executor()
+    query = f"Generate report for company {company_id}"
+    return await executor.ainvoke({"messages": [HumanMessage(content=query)]})
