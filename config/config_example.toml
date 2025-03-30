@@ -5,6 +5,7 @@ port = 5432
 user = "root"
 password = "your_password"
 dbname = "equity_research" # pls create your schema first
+
 [redis]
 url = "redis://localhost:6379/0"
 

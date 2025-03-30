@@ -3,8 +3,6 @@ from config.celery_config import celery_app
 from app.database import get_db_connection
 from datetime import datetime
 import os
-from app.llm_service import AnthropicService
-from app.data_loader import data_loader
 from config.config_load import CONFIG
 import asyncio
 from app.agents.research_agent import AnthropicAgent
