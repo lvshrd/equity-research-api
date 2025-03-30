@@ -19,7 +19,7 @@ An API service for generating equity research reports combining AI analysis with
 | GET    | `/reports/{task_id}` | Download the generated report from a certain task.             |
 | POST   | `/token`             | Allows valid users to obtain a JWT token by providing username and password. |
 
-You can click [here](docs/example_report.html) to view the example demo report generated for American Airlines Group.
+You can click [here](docs/example_report.md) to view the example demo report generated for American Airlines Group.
 
 ## Tech Stack
 - FastAPI for building the API
